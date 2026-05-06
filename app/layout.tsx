@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
+import AuthListener from "@/components/auth/AuthListener";
 
 export const metadata: Metadata = {
   title: "IF-VEST | Portfolio Reflection Engine",
@@ -9,8 +11,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
-      <body className="antialiased">{children}</body>
+    <html lang="en">
+      <body className="antialiased">
+        <AuthListener />
+        {children}
+        <Toaster position="top-center" richColors closeButton />
+      </body>
     </html>
   );
 }

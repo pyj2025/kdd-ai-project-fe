@@ -1,18 +1,33 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { NAV_ITEMS } from "./constants";
+import { createClient } from "@/lib/supabase/server";
+import LogoutButton from "@/components/auth/LogoutButton";
+import UserAvatar from "@/components/shared/UserAvatar";
 
-function Navbar() {
-  const pathname = usePathname();
+async function Navbar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ??
+    (user?.user_metadata?.full_name as string | undefined) ??
+    null;
+  const pictureUrl =
+    (user?.user_metadata?.avatar_url as string | undefined) ??
+    (user?.user_metadata?.picture as string | undefined) ??
+    null;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#F8FAFC] border-b border-gray-300 px-4">
       <div className="flex h-14 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-lg tracking-tight text-[#0d1f35]">
+          <Link
+            href="/"
+            className="font-bold text-lg tracking-tight text-[#0d1f35]"
+          >
             IF-VEST
           </Link>
 
@@ -36,12 +51,45 @@ function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" className="text-sm text-[#0d1f35]" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button className="text-sm bg-[#0d1f35] hover:bg-[#162d4a] text-white" asChild>
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button
+                variant="ghost"
+                className="text-sm text-[#0d1f35]"
+                asChild
+              >
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 hover:opacity-80"
+                aria-label="Settings"
+              >
+                <UserAvatar
+                  name={displayName}
+                  email={user.email}
+                  pictureUrl={pictureUrl}
+                />
+              </Link>
+              <LogoutButton />
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                className="text-sm text-[#0d1f35]"
+                asChild
+              >
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button
+                className="text-sm bg-[#0d1f35] hover:bg-[#162d4a] text-white"
+                asChild
+              >
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
