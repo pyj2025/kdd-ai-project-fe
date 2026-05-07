@@ -1,13 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { CheckCircle2, AlertCircle } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 import UpdateNameForm from "@/components/settings/UpdateNameForm";
@@ -16,6 +10,7 @@ import UpdatePasswordForm from "@/components/settings/UpdatePasswordForm";
 import DeleteAccountForm from "@/components/settings/DeleteAccountForm";
 import ResendVerificationButton from "@/components/settings/ResendVerificationButton";
 import EmailChangedToast from "@/components/settings/EmailChangedToast";
+import APIConnectionButton from "@/components/settings/APIConnectionButton";
 
 async function SettingsPage() {
   const supabase = await createClient();
@@ -108,10 +103,20 @@ async function SettingsPage() {
 
       <Card className="border-red-200">
         <CardHeader>
+          <CardTitle>API Connection</CardTitle>
+          <CardDescription>check your API connection in console</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <APIConnectionButton />
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      <Card className="border-red-200">
+        <CardHeader>
           <CardTitle className="text-red-700">Danger zone</CardTitle>
-          <CardDescription>
-            Account deletion is permanent and cannot be undone.
-          </CardDescription>
+          <CardDescription>Account deletion is permanent and cannot be undone.</CardDescription>
         </CardHeader>
         <CardContent>
           <DeleteAccountForm />
