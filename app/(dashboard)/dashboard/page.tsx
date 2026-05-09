@@ -1,14 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 async function DashboardPage() {
   const supabase = await createClient();
@@ -42,9 +37,7 @@ async function DashboardPage() {
 
       {!displayName && (
         <div className="rounded-md bg-blue-50 border border-blue-200 p-4 text-sm flex items-center justify-between gap-4">
-          <span className="text-blue-900">
-            Add your name so we can greet you properly.
-          </span>
+          <span className="text-blue-900">Add your name so we can greet you properly.</span>
           <Link
             href="/settings"
             className="text-[#0d1f35] underline underline-offset-4 text-sm font-medium whitespace-nowrap"
@@ -54,6 +47,9 @@ async function DashboardPage() {
         </div>
       )}
 
+      {/* 버튼 + 결과 카드 (Client Component) */}
+      <DashboardClient />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -61,9 +57,8 @@ async function DashboardPage() {
             Your decisions will appear here
           </CardTitle>
           <CardDescription>
-            Log a buy or sell decision you made (or didn&apos;t make), and
-            we&apos;ll show you what would have happened. Pattern analysis
-            unlocks at 10 entries.
+            Log a buy or sell decision you made (or didn&apos;t make), and we&apos;ll show you what
+            would have happened. Pattern analysis unlocks at 10 entries.
           </CardDescription>
         </CardHeader>
         <CardContent>
