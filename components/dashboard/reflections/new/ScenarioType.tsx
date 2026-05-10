@@ -5,16 +5,19 @@ const SCENARIOS = [
     value: "no_buy",
     label: "No Buy",
     description: "Deciding against a potential entry despite external hype.",
+    icon: "/icons/scenarios/piggybank.png",
   },
   {
     value: "no_sell",
     label: "No Sell",
     description: "Exercising patience and holding during market volatility",
+    icon: "/icons/scenarios/money.png",
   },
   {
     value: "sold_too_early",
     label: "Sold Early",
     description: "Exiting a position before your original price target was hit",
+    icon: "/icons/scenarios/briefcase.png",
   },
 ];
 
@@ -40,10 +43,12 @@ function ScenarioType({ scenario, setScenario }: ScenarioTypeProps) {
                 : "bg-[#1e3a52]/90 border-transparent hover:border-[#1e3a52]",
             )}
           >
-            {/* Icon placeholder — 디자이너가 피그마에서 직접 교체 예정 */}
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-lg bg-white/20" />
-            </div>
+            <img
+              src={s.icon}
+              alt=""
+              aria-hidden="true"
+              className="w-16 h-16 shrink-0 object-contain"
+            />
             <div>
               <p className="text-base font-bold text-white mb-1">{s.label}</p>
               <p className="text-xs text-[#93abbe] leading-relaxed">{s.description}</p>
