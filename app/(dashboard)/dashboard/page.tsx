@@ -1,73 +1,72 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Sparkles } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import StatCards from "@/components/dashboard/StatCards";
+import ReflectionRow from "@/components/dashboard/ReflectionRow";
+import { Button } from "@/components/ui/button";
 
 async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
-  const displayName =
-    profile?.display_name ??
-    (user.user_metadata?.display_name as string | undefined) ??
-    (user.user_metadata?.full_name as string | undefined) ??
-    null;
-
-  const greeting = displayName ? `Hi, ${displayName}` : "Hi there";
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-[#0d1f35]">{greeting}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Logged in as <span className="font-mono">{user.email}</span>
-        </p>
-      </div>
-
-      {!displayName && (
-        <div className="rounded-md bg-blue-50 border border-blue-200 p-4 text-sm flex items-center justify-between gap-4">
-          <span className="text-blue-900">Add your name so we can greet you properly.</span>
-          <Link
-            href="/settings"
-            className="text-[#0d1f35] underline underline-offset-4 text-sm font-medium whitespace-nowrap"
-          >
-            Go to settings
-          </Link>
-        </div>
-      )}
-
-      {/* 버튼 + 결과 카드 (Client Component) */}
-      <DashboardClient />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#0d1f35]" />
-            Your decisions will appear here
-          </CardTitle>
-          <CardDescription>
-            Log a buy or sell decision you made (or didn&apos;t make), and we&apos;ll show you what
-            would have happened. Pattern analysis unlocks at 10 entries.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            (Decision logger and analysis coming soon.)
+    <>
+      <main className="flex-1 px-10 py-10 max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">Behavioral Patterns</h1>
+          <p className="text-sm text-[#6b7280] mt-2">
+            A quantitative mirror of your emotional decision-making cycles.
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        <div className="flex gap-4 mb-10">
+          <StatCards />
+        </div>
+
+        <div>
+          <h2 className="text-base font-bold text-[#0d1f35] mb-2">Recent Reflections</h2>
+          <ReflectionRow
+            title="NVDIA Q3 Earnings Panic"
+            date="Oct 14, 2023"
+            emotion="High Anxiety"
+            tag="deviation"
+          />
+          <ReflectionRow
+            title="Treasury Yield Shift Rebalancing"
+            date="Oct 02, 2023"
+            emotion="Neutral"
+            tag="plan-aligned"
+          />
+          <ReflectionRow
+            title="S&P 500 Put Option Hedge"
+            date="Sep 21, 2023"
+            emotion="Cautious"
+            tag="manual"
+          />
+        </div>
+      </main>
+
+      <div className="bg-[#0d1f35] mx-10 mb-10 rounded-2xl px-10 py-8 flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-white mb-2">Unlock Deep Insights</h3>
+          <p className="text-sm text-[#93abbe] max-w-xs leading-relaxed">
+            Our algorithm needs more data to map your psychological profile accurately. Your next
+            major discovery is only a few reflections away.
+          </p>
+        </div>
+        <Button
+          asChild
+          className="bg-white text-[#0d1f35] text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#f3f5f7] hover:text-[#0d1f35] shrink-0 ml-8"
+        >
+          <Link href="/dashboard/reflection">Write Reflection</Link>
+        </Button>
+      </div>
+    </>
   );
 }
 
