@@ -10,7 +10,6 @@ import UpdatePasswordForm from "@/components/settings/UpdatePasswordForm";
 import DeleteAccountForm from "@/components/settings/DeleteAccountForm";
 import ResendVerificationButton from "@/components/settings/ResendVerificationButton";
 import EmailChangedToast from "@/components/settings/EmailChangedToast";
-import APIConnectionButton from "@/components/settings/APIConnectionButton";
 
 async function SettingsPage() {
   const supabase = await createClient();
@@ -30,7 +29,7 @@ async function SettingsPage() {
   const isVerified = !!user.email_confirmed_at;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+    <div className="px-8 py-8 space-y-8">
       <Suspense fallback={null}>
         <EmailChangedToast />
       </Suspense>
@@ -98,18 +97,6 @@ async function SettingsPage() {
           </CardContent>
         </Card>
       )}
-
-      <Separator />
-
-      <Card className="border-red-200">
-        <CardHeader>
-          <CardTitle>API Connection</CardTitle>
-          <CardDescription>check your API connection in console</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <APIConnectionButton />
-        </CardContent>
-      </Card>
 
       <Separator />
 
