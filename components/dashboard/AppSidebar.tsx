@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HelpCircle, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -15,12 +13,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard" },
-  { label: "New Reflection", href: "/dashboard/reflection" },
+  { label: "Reflections", href: "/dashboard/reflections" },
+  { label: "New Reflection", href: "/dashboard/reflections/new" },
 ];
 
-export default function AppSidebar() {
+function AppSidebar() {
   const pathname = usePathname();
 
   return (
@@ -36,7 +35,7 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(item => {
+              {NAV_ITEMS.map(item => {
                 const isActive = pathname === item.href;
                 return (
                   <SidebarMenuItem key={item.label}>
@@ -62,27 +61,8 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="px-3 pb-8">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="text-[#6b7280] text-xs">
-              <Link href="/help">
-                <HelpCircle className="w-4 h-4" />
-                Help Center
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild className="text-[#6b7280] text-xs">
-              <Link href="/settings">
-                <User className="w-4 h-4" />
-                Account
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }
+
+export default AppSidebar;

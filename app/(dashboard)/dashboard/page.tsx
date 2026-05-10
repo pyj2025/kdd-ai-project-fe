@@ -14,42 +14,40 @@ async function DashboardPage() {
   if (!user) redirect("/login");
 
   return (
-    <>
-      <main className="flex-1 px-10 py-10 max-w-5xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">Behavioral Patterns</h1>
-          <p className="text-sm text-[#6b7280] mt-2">
-            A quantitative mirror of your emotional decision-making cycles.
-          </p>
-        </div>
+    <div className="px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">Behavioral Patterns</h1>
+        <p className="text-sm text-[#6b7280] mt-2">
+          A quantitative mirror of your emotional decision-making cycles.
+        </p>
+      </div>
 
-        <div className="flex gap-4 mb-10">
-          <StatCards />
-        </div>
+      <div className="flex gap-4 mb-10">
+        <StatCards />
+      </div>
 
-        <div>
-          <h2 className="text-base font-bold text-[#0d1f35] mb-2">Recent Reflections</h2>
-          <ReflectionRow
-            title="NVDIA Q3 Earnings Panic"
-            date="Oct 14, 2023"
-            emotion="High Anxiety"
-            tag="deviation"
-          />
-          <ReflectionRow
-            title="Treasury Yield Shift Rebalancing"
-            date="Oct 02, 2023"
-            emotion="Neutral"
-            tag="plan-aligned"
-          />
-          <ReflectionRow
-            title="S&P 500 Put Option Hedge"
-            date="Sep 21, 2023"
-            emotion="Cautious"
-            tag="manual"
-          />
-        </div>
-      </main>
+      <div>
+        <h2 className="text-base font-bold text-[#0d1f35] mb-2">Recent Reflections</h2>
+        <ReflectionRow
+          title="NVDIA Q3 Earnings Panic"
+          date="Oct 14, 2023"
+          emotion="High Anxiety"
+          tag="deviation"
+        />
+        <ReflectionRow
+          title="Treasury Yield Shift Rebalancing"
+          date="Oct 02, 2023"
+          emotion="Neutral"
+          tag="plan-aligned"
+        />
+        <ReflectionRow
+          title="S&P 500 Put Option Hedge"
+          date="Sep 21, 2023"
+          emotion="Cautious"
+          tag="manual"
+        />
+      </div>
 
       <div className="bg-[#0d1f35] mx-10 mb-10 rounded-2xl px-10 py-8 flex items-center justify-between">
         <div>
@@ -66,7 +64,7 @@ async function DashboardPage() {
           <Link href="/dashboard/reflection">Write Reflection</Link>
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 

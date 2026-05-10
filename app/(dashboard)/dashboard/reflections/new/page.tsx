@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import ThoughtTextarea from "@/components/dashboard/reflection/ThinkingTextarea";
-import ScenarioType from "@/components/dashboard/reflection/ScenarioType";
-import FooterFeatures from "@/components/dashboard/reflection/FooterFeatures";
+import ThoughtTextarea from "@/components/dashboard/reflections/new/ThinkingTextarea";
+import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
+import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
 
-function ReflectionPage() {
+function NewPage() {
   const [thought, setThought] = useState("");
   const [ticker, setTicker] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -38,6 +38,7 @@ function ReflectionPage() {
           amount: Number(amount) || 0,
         }),
       });
+
       if (!res.ok) throw new Error(`Error ${res.status}`);
       // handle result
     } catch (err) {
@@ -48,7 +49,7 @@ function ReflectionPage() {
   };
 
   return (
-    <div className="mx-auto px-8 py-8 space-y-8">
+    <div className="px-8 py-8 space-y-8">
       {/* ── Header ── */}
       <div>
         <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight tracking-tight">
@@ -166,4 +167,4 @@ function ReflectionPage() {
   );
 }
 
-export default ReflectionPage;
+export default NewPage;
