@@ -61,7 +61,7 @@ async function DashboardPage() {
           asChild
           className="bg-white text-[#0d1f35] text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#f3f5f7] hover:text-[#0d1f35] shrink-0 ml-8"
         >
-          <Link href="/dashboard/reflection">Write Reflection</Link>
+          <Link href="/dashboard/reflections/new">Write Reflection</Link>
         </Button>
       </div>
     </div>

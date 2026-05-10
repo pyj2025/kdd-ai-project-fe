@@ -1,19 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import ThoughtTextarea from "@/components/dashboard/reflections/new/ThinkingTextarea";
 import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
 import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
 
 function NewPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [thought, setThought] = useState("");
   const [ticker, setTicker] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -25,22 +31,47 @@ function NewPage() {
 
   const handleSubmit = async () => {
     if (!ticker || !scenario) return;
+
     setLoading(true);
+
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/calculate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ticker,
           scenario_type: scenario,
-          target_date: date ? format(date, "yyyy-MM-dd") : "",
+          decision_date: date ? format(date, "yyyy-MM-dd") : "",
           quantity: Number(quantity) || 0,
           amount: Number(amount) || 0,
         }),
       });
 
       if (!res.ok) throw new Error(`Error ${res.status}`);
-      // handle result
+      const result = await res.json();
+
+      // 2. Supabase에 저장
+      const { error } = await supabase.from("decisions").insert({
+        user_id: user.id,
+        ticker,
+        scenario_type: scenario,
+        decision_date: date ? format(date, "yyyy-MM-dd") : null,
+        quantity: Number(quantity) || null,
+        amount: Number(amount) || null,
+        decision_price_snapshot: result.past_price ?? null,
+        notes: thought || null,
+      });
+
+      if (error) throw new Error(error.message);
+
+      // ai /calculate result + note -> 분석
+
+      router.push("/dashboard/reflections");
     } catch (err) {
       console.error(err);
     } finally {

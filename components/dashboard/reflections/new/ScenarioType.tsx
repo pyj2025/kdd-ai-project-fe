@@ -2,17 +2,17 @@ import { cn } from "@/lib/utils";
 
 const SCENARIOS = [
   {
-    value: "NO_BUY",
+    value: "no_buy",
     label: "No Buy",
     description: "Deciding against a potential entry despite external hype.",
   },
   {
-    value: "NO_SELL",
+    value: "no_sell",
     label: "No Sell",
     description: "Exercising patience and holding during market volatility",
   },
   {
-    value: "SELL_THEN_RISE",
+    value: "sold_too_early",
     label: "Sold Early",
     description: "Exiting a position before your original price target was hit",
   },
