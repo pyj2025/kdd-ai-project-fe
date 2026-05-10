@@ -92,7 +92,7 @@ function NewPage() {
       const data = await res.json();
       const { extracted, confidence } = data;
       const THRESHOLD = 0.7;
-      if (extracted.ticker && confidence.ticker >= THRESHOLD) {
+      if (extracted.ticker && confidence.ticker >= THRESHOLD && data.ticker_validated) {
         setTicker(extracted.ticker.toUpperCase());
       }
       if (extracted.scenario_type && confidence.scenario_type >= THRESHOLD) {
