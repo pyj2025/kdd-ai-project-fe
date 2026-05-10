@@ -63,7 +63,7 @@ function NewPage() {
         decision_date: date ? format(date, "yyyy-MM-dd") : null,
         quantity: Number(quantity) || null,
         amount: Number(amount) || null,
-        decision_price_snapshot: result.past_price ?? null,
+        decision_price_snapshot: result.diff_amount ?? null,
         notes: thought || null,
       });
 
