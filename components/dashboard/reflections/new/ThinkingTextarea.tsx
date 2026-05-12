@@ -15,7 +15,8 @@ function ThoughtTextarea({ thought, setThought, onExtract, extractLoading }: Tho
   return (
     <>
       <p className="text-xs font-bold text-[#0d1f35] uppercase tracking-widest">
-        Step 1. Describe your decision <span className="text-[#9ca3af] font-normal normal-case tracking-normal">(optional)</span>
+        Step 1. Describe your decision{" "}
+        <span className="text-[#9ca3af] font-normal normal-case tracking-normal">(optional)</span>
       </p>
       <Textarea
         placeholder="e.g. I'm thinking about selling my NVDA position because the P/E ratio feels stretched, even though growth remains strong..."

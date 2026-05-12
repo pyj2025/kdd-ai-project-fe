@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import ThoughtTextarea from "@/components/dashboard/reflections/new/ThinkingTextarea";
 import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
 import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
+import TickerInput from "@/components/dashboard/reflections/new/TickerInput";
 
 type ResultState = {
   ticker: string;
@@ -46,7 +47,9 @@ const OUTCOME_STYLE: Record<string, string> = {
 };
 
 const formatUsd = (n: number | null) =>
-  n == null ? "N/A" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  n == null
+    ? "N/A"
+    : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
 const formatPercent = (n: number | null) => {
   if (n == null) return "N/A";
@@ -354,17 +357,7 @@ function NewPage() {
       {/* ── Inputs row ── */}
       <div className="grid grid-cols-4 gap-6">
         {/* Ticker */}
-        <div className="space-y-2">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-[#0d1f35]">
-            Ticker
-          </Label>
-          <Input
-            placeholder="NVDA"
-            value={ticker}
-            onChange={e => setTicker(e.target.value.toUpperCase())}
-            className="h-12 bg-[#dce3eb] border-0 rounded text-sm text-[#0d1f35] placeholder:text-[#8fa0b0] focus-visible:ring-1 focus-visible:ring-[#0d1f35] shadow-none"
-          />
-        </div>
+        <TickerInput value={ticker} onChange={setTicker} />
 
         {/* Date of Intent */}
         <div className="space-y-2">
