@@ -15,6 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import ThoughtTextarea from "@/components/dashboard/reflections/new/ThinkingTextarea";
 import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
 import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
+import TickerInput from "@/components/dashboard/reflections/new/TickerInput";
 
 type ResultState = {
   ticker: string;
@@ -46,7 +47,9 @@ const OUTCOME_STYLE: Record<string, string> = {
 };
 
 const formatUsd = (n: number | null) =>
-  n == null ? "N/A" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  n == null
+    ? "N/A"
+    : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
 const formatPercent = (n: number | null) => {
   if (n == null) return "N/A";
@@ -67,17 +70,6 @@ function NewPage() {
   const [scenario, setScenario] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
-  const [result, setResult] = useState<ResultState | null>(null);
-
-  const handleReset = () => {
-    setResult(null);
-    setThought("");
-    setTicker("");
-    setDate(new Date());
-    setQuantity("");
-    setAmount("");
-    setScenario(null);
-  };
 
   const handleExtract = async () => {
     if (thought.trim().length < 3) return;
@@ -203,124 +195,13 @@ function NewPage() {
 
       if (error) throw new Error(error.message);
 
-      setResult({
-        ticker,
-        scenario: scenario!,
-        decisionDate,
-        decisionPrice: calc.decision_price ?? null,
-        currentPrice: calc.current_price ?? null,
-        diffPercent: calc.diff_percent ?? null,
-        outcome: calc.outcome ?? null,
-        reflection,
-      });
+      router.push("/dashboard");
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
-  if (result) {
-    return (
-      <div className="px-8 py-8 space-y-8">
-        <div>
-          <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight tracking-tight">
-            Your Reflection.
-          </h1>
-          <p className="text-sm text-[#6b7280] mt-1 leading-relaxed">
-            {result.ticker} {"·"} {SCENARIO_LABEL[result.scenario] ?? result.scenario}
-            {result.decisionDate && (
-              <>
-                {" "}
-                {"·"} {format(parse(result.decisionDate, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}
-              </>
-            )}
-          </p>
-        </div>
-
-        {/* Numeric breakdown */}
-        <div className="bg-[#0d1f35] rounded-2xl p-8 text-white">
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe]">
-                Ticker
-              </p>
-              <p className="text-3xl font-bold mt-1">{result.ticker}</p>
-            </div>
-            {result.outcome && (
-              <span
-                className={cn(
-                  "text-xs font-semibold px-3 py-1.5 rounded-full",
-                  OUTCOME_STYLE[result.outcome] ?? "bg-gray-100 text-gray-700",
-                )}
-              >
-                {OUTCOME_LABEL[result.outcome] ?? result.outcome}
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe]">
-                Decision Price
-              </p>
-              <p className="text-lg font-semibold mt-1">{formatUsd(result.decisionPrice)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe]">
-                Current Price
-              </p>
-              <p className="text-lg font-semibold mt-1">{formatUsd(result.currentPrice)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe]">
-                Change
-              </p>
-              <p
-                className={cn(
-                  "text-lg font-semibold mt-1",
-                  result.diffPercent != null && result.diffPercent > 0 && "text-emerald-400",
-                  result.diffPercent != null && result.diffPercent < 0 && "text-red-400",
-                )}
-              >
-                {formatPercent(result.diffPercent)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Reflection */}
-        <div className="bg-[#f3f5f7] rounded-2xl p-8 space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#0d1f35]">
-            Reflection
-          </p>
-          {result.reflection ? (
-            <p className="text-lg text-[#0d1f35] leading-relaxed">{result.reflection}</p>
-          ) : (
-            <p className="text-sm text-[#6b7280]">Reflection unavailable for this entry.</p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-center gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            className="h-12 px-6 text-sm font-medium border-[#d1d5db] text-[#0d1f35] hover:bg-[#f3f5f7]"
-          >
-            Reflect on another
-          </Button>
-          <Button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="h-12 px-6 bg-[#1e2d3d] hover:bg-[#162536] text-white text-sm font-medium"
-          >
-            Back to dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="px-8 py-8 space-y-8">
@@ -354,17 +235,7 @@ function NewPage() {
       {/* ── Inputs row ── */}
       <div className="grid grid-cols-4 gap-6">
         {/* Ticker */}
-        <div className="space-y-2">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-[#0d1f35]">
-            Ticker
-          </Label>
-          <Input
-            placeholder="NVDA"
-            value={ticker}
-            onChange={e => setTicker(e.target.value.toUpperCase())}
-            className="h-12 bg-[#dce3eb] border-0 rounded text-sm text-[#0d1f35] placeholder:text-[#8fa0b0] focus-visible:ring-1 focus-visible:ring-[#0d1f35] shadow-none"
-          />
-        </div>
+        <TickerInput value={ticker} onChange={setTicker} />
 
         {/* Date of Intent */}
         <div className="space-y-2">
