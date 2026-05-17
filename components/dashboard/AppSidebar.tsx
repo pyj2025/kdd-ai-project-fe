@@ -25,10 +25,9 @@ function AppSidebar() {
   return (
     <Sidebar className="border-r border-[#e8eaed] bg-white top-14 h-[calc(100svh-56px)]">
       <SidebarHeader className="px-5 pt-8 pb-6">
-        <p className="text-xs font-bold text-[#0d1f35] uppercase tracking-wide leading-none">
+        <p className="text-xl font-bold text-[#0d1f35] uppercase tracking-wide leading-none">
           Investor Portal
         </p>
-        <p className="text-[10px] text-[#6b7280] mt-0.5">Honest Mirror v1.0</p>
       </SidebarHeader>
 
       <SidebarContent className="px-3">

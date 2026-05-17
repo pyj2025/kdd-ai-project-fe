@@ -5,6 +5,28 @@ import StatCards from "@/components/dashboard/StatCards";
 import ReflectionRow from "@/components/dashboard/ReflectionRow";
 import { Button } from "@/components/ui/button";
 
+const EMOTIONS = ["High Anxiety", "Neutral", "Cautious"] as const;
+
+function getRandomEmotion(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) & 0xffffffff;
+  }
+  return EMOTIONS[Math.abs(hash) % EMOTIONS.length];
+}
+
+const scenarioToTag = {
+  no_buy: "deviation",
+  no_sell: "plan-aligned",
+  sold_too_early: "manual",
+} as const;
+
+const scenarioToLabel = {
+  no_buy: "Missed Buy",
+  no_sell: "Missed Sell",
+  sold_too_early: "Sold Too Early",
+} as const;
+
 async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -12,6 +34,13 @@ async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  const { data: decisions } = await supabase
+    .from("decisions")
+    .select("id, ticker, scenario_type, decision_date")
+    .eq("user_id", user.id)
+    .order("decision_date", { ascending: false })
+    .limit(3);
 
   return (
     <div className="px-8 py-8 space-y-8">
@@ -29,24 +58,34 @@ async function DashboardPage() {
 
       <div>
         <h2 className="text-base font-bold text-[#0d1f35] mb-2">Recent Reflections</h2>
-        <ReflectionRow
-          title="NVDIA Q3 Earnings Panic"
-          date="Oct 14, 2023"
-          emotion="High Anxiety"
-          tag="deviation"
-        />
-        <ReflectionRow
-          title="Treasury Yield Shift Rebalancing"
-          date="Oct 02, 2023"
-          emotion="Neutral"
-          tag="plan-aligned"
-        />
-        <ReflectionRow
-          title="S&P 500 Put Option Hedge"
-          date="Sep 21, 2023"
-          emotion="Cautious"
-          tag="manual"
-        />
+
+        {!decisions || decisions.length === 0 ? (
+          <p className="text-sm text-[#6b7280] py-6">No reflections yet. Write your first one!</p>
+        ) : (
+          decisions.map(d => {
+            const tag = scenarioToTag[d.scenario_type as keyof typeof scenarioToTag] ?? "manual";
+            const label =
+              scenarioToLabel[d.scenario_type as keyof typeof scenarioToLabel] ?? d.scenario_type;
+            const title = `${d.ticker} – ${label}`;
+            const date = new Date(d.decision_date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+            const emotion = getRandomEmotion(d.id);
+
+            return (
+              <ReflectionRow
+                key={d.id}
+                id={d.id}
+                title={title}
+                date={date}
+                emotion={emotion}
+                tag={tag}
+              />
+            );
+          })
+        )}
       </div>
 
       <div className="bg-[#0d1f35] mx-10 mb-10 rounded-2xl px-10 py-8 flex items-center justify-between">
