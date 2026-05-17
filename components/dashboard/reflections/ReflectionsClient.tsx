@@ -15,7 +15,7 @@ type Reflection = {
   tag: TagVariant;
 };
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 8;
 
 function ReflectionsClient({ reflections }: { reflections: Reflection[] }) {
   const [page, setPage] = useState(1);
@@ -36,13 +36,15 @@ function ReflectionsClient({ reflections }: { reflections: Reflection[] }) {
   };
 
   return (
-    <div className="px-8 py-8 space-y-8">
+    <div className="flex flex-col h-full px-8 py-8">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">Recent Reflections</h1>
         <FilterDialog filters={filters} onApply={handleFilter} />
       </div>
 
-      <div>
+      {/* Rows — grows to fill available space */}
+      <div className="flex-1">
         {paginated.length === 0 ? (
           <p className="text-sm text-[#6b7280] py-10 text-center">No Reflections</p>
         ) : (
@@ -59,7 +61,9 @@ function ReflectionsClient({ reflections }: { reflections: Reflection[] }) {
         )}
       </div>
 
-      {totalPages > 1 && <Pagination current={page} total={totalPages} onChange={setPage} />}
+      <div className="pt-4 min-h-[48px] flex justify-center items-center">
+        {totalPages > 1 && <Pagination current={page} total={totalPages} onChange={setPage} />}
+      </div>
     </div>
   );
 }
