@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,21 +28,15 @@ function Theory() {
             architecture.
           </p>
           <div className="flex items-center gap-4 mt-2 h-12">
-            <Button className="bg-[#0d1f35] hover:bg-[#162d4a] text-white px-6 h-full" asChild>
-              <Link href="/signup">Start Your Reflection →</Link>
-            </Button>
             <Button
-              variant="outline"
-              className="border-[#0d1f35]/40 text-[#0d1f35] hover:bg-[#0d1f35]/5 px-6 h-full"
+              className="bg-[#0d1f35] hover:bg-[#162d4a] text-white px-6 w-full h-full"
               asChild
             >
-              <Link href="/#methodology">View Methodology</Link>
+              <Link href="/dashboard">Investor Portal</Link>
             </Button>
           </div>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-gray-100 aspect-[4/3] flex items-center justify-center text-gray-400 text-sm">
-          IMAGE
-        </div>
+        <Image src="/Theory-Chart.png" alt="charts" width={800} height={500} priority />
       </div>
     </section>
   );

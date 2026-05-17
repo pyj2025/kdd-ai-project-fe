@@ -1,19 +1,40 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { NAV_ITEMS } from "./constants";
+import { createClient } from "@/lib/supabase/server";
+import UserMenu from "./UserMenu";
 
-function Navbar() {
-  const pathname = usePathname();
+async function Navbar() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const displayName =
+    (user?.user_metadata?.display_name as string | undefined) ??
+    (user?.user_metadata?.full_name as string | undefined) ??
+    null;
+
+  const pictureUrl =
+    (user?.user_metadata?.avatar_url as string | undefined) ??
+    (user?.user_metadata?.picture as string | undefined) ??
+    null;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#F8FAFC] border-b border-gray-300 px-4">
       <div className="flex h-14 items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-lg tracking-tight text-[#0d1f35]">
-            IF-VEST
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/IF-VEST.png"
+              alt="IF-VEST"
+              width={120}
+              height={36}
+              style={{ height: "auto" }}
+              priority
+            />
           </Link>
 
           <nav className="hidden md:flex items-center h-14">
@@ -36,12 +57,18 @@ function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" className="text-sm text-[#0d1f35]" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button className="text-sm bg-[#0d1f35] hover:bg-[#162d4a] text-white" asChild>
-            <Link href="/signup">Sign Up</Link>
-          </Button>
+          {user ? (
+            <UserMenu displayName={displayName} email={user.email} pictureUrl={pictureUrl} />
+          ) : (
+            <>
+              <Button variant="ghost" className="text-sm text-[#0d1f35]" asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button className="text-sm bg-[#0d1f35] hover:bg-[#162d4a] text-white" asChild>
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
