@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 function Theory() {
@@ -12,20 +11,12 @@ function Theory() {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-16 w-full items-center">
         <div className="flex flex-col gap-6">
-          <Badge
-            variant="outline"
-            className="w-fit text-xs tracking-widest uppercase text-[#0d1f35] border-[#0d1f35]/30"
-          >
-            Portfolio Reflection Engine
-          </Badge>
           <h1 className="text-4xl md:text-5xl font-bold text-[#0d1f35] leading-tight">
-            The decisions you <span className="text-[#5a7fa8]">didn't</span> make are your greatest
-            data.
+            Empower Your Decisions 
           </h1>
           <p className="text-[#4a5568] text-base md:text-lg leading-relaxed max-w-md">
-            If-Vest is the &ldquo;Honest Mirror&rdquo; for serious investors. We quantify the
-            opportunity cost of the road not taken, revealing the hidden patterns in your decision
-            architecture.
+            Analyze your investment patterns through precision data. Uncover actionable
+            strategies by seeing your history built on the firmest ground.
           </p>
           <div className="flex items-center gap-4 mt-2 h-12">
             <Button
