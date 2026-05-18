@@ -13,7 +13,7 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { createClient } from "@/lib/supabase/client";
+import { apiGet, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { DIRECTION_CONFIG, OUTCOME_LABEL, OUTCOME_STYLE, SCENARIO_LABEL } from "./constants";
@@ -35,6 +35,8 @@ type Decision = {
   was_decision_correct: boolean | null;
   notes: string | null;
   reflection: string | null;
+  title: string | null;
+  emotion: string | null;
   quantity: number | null;
   amount: number | null;
 };
@@ -51,7 +53,6 @@ type PriceHistory = {
 
 function ReflectionDetailClient({ id }: { id: string }) {
   const router = useRouter();
-  const supabase = createClient();
 
   const [decision, setDecision] = useState<Decision | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
@@ -59,21 +60,29 @@ function ReflectionDetailClient({ id }: { id: string }) {
   const [loadingChart, setLoadingChart] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 1) Supabase에서 decision 가져오기
   useEffect(() => {
-    async function fetchDecision() {
-      const { data, error } = await supabase.from("decisions").select("*").eq("id", id).single();
-
-      if (error || !data) {
-        setError("Reflection not found.");
-        setLoadingDecision(false);
-        return;
-      }
-
-      setDecision(data as Decision);
-      setLoadingDecision(false);
-    }
-    fetchDecision();
+    let cancelled = false;
+    setLoadingDecision(true);
+    apiGet(`/decisions/${id}`)
+      .then(data => {
+        if (cancelled) return;
+        setDecision(data as Decision);
+        setError(null);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setError("Reflection not found.");
+        } else {
+          setError(err.message ?? "Failed to load reflection.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDecision(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // 2) FastAPI에서 price history 가져오기
@@ -83,11 +92,9 @@ function ReflectionDetailClient({ id }: { id: string }) {
     async function fetchPriceHistory() {
       setLoadingChart(true);
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/price-history/${decision!.ticker}?decision_date=${decision!.decision_date}`,
+        const data: PriceHistory = await apiGet(
+          `/price-history/${decision!.ticker}?decision_date=${decision!.decision_date}`,
         );
-        if (!res.ok) throw new Error("Failed to fetch price history");
-        const data: PriceHistory = await res.json();
         setPriceHistory(data);
       } catch (e) {
         console.error(e);
@@ -147,7 +154,10 @@ function ReflectionDetailClient({ id }: { id: string }) {
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="min-w-0">
+          {decision.title && (
+            <p className="text-xs text-[#6b7280] mb-1 truncate">{decision.title}</p>
+          )}
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">{decision.ticker}</h1>
             {decision.outcome && (
@@ -161,7 +171,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-[#6b7280]">
+          <div className="flex items-center gap-3 text-xs text-[#6b7280] flex-wrap">
             <span className="flex items-center gap-1">
               <Tag className="w-3 h-3" />
               {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
@@ -171,6 +181,15 @@ function ReflectionDetailClient({ id }: { id: string }) {
               <Calendar className="w-3 h-3" />
               {formatDate(decision.decision_date)}
             </span>
+            {decision.emotion && (
+              <>
+                <span>·</span>
+                <span>
+                  Emotion:{" "}
+                  {decision.emotion.charAt(0).toUpperCase() + decision.emotion.slice(1)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -224,7 +243,6 @@ function ReflectionDetailClient({ id }: { id: string }) {
               : "bg-red-50 border border-red-100",
           )}
         >
-          <span className="text-2xl">{decision.was_decision_correct ? "✅" : "❌"}</span>
           <div>
             <p
               className={cn(
@@ -242,7 +260,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
                 decision.was_decision_correct ? "text-emerald-600" : "text-red-500",
               )}
             >
-              {dirCfg.label} — {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
+              {dirCfg.label} · {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
             </p>
           </div>
         </div>
@@ -252,7 +270,9 @@ function ReflectionDetailClient({ id }: { id: string }) {
       <div className="bg-[#f3f5f7] rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart2 className="w-4 h-4 text-[#0d1f35]" />
-          <h2 className="text-sm font-bold text-[#0d1f35]">Price History — {decision.ticker}</h2>
+          <h2 className="text-sm font-bold text-[#0d1f35]">
+            Price History · {decision.ticker}
+          </h2>
           <span className="text-xs text-[#9ca3af] ml-auto">
             60 days before · 90 days after decision
           </span>
@@ -267,7 +287,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={v => {
+                  tickFormatter={(v: string) => {
                     try {
                       return format(parseISO(v), "MMM d");
                     } catch {
@@ -284,7 +304,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
                   tick={{ fontSize: 10, fill: "#9ca3af" }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={v => `$${v.toFixed(0)}`}
+                  tickFormatter={(v: number) => `$${v.toFixed(0)}`}
                   width={52}
                 />
                 <Tooltip content={<ChartTooltip />} />
@@ -342,11 +362,11 @@ function ReflectionDetailClient({ id }: { id: string }) {
         )}
       </div>
 
-      {/* ── AI Reflection ── */}
+      {/* ── Reflection ── */}
       {decision.reflection && (
         <div className="bg-[#0d1f35] rounded-2xl p-8">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-3">
-            AI Reflection
+            Reflection
           </p>
           <p className="text-white text-sm leading-relaxed">{decision.reflection}</p>
         </div>
