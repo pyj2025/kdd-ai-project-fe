@@ -1,18 +1,38 @@
-function InsightCard() {
+interface InsightCardProps {
+  locked: boolean;
+  currentCount: number;
+  requiredCount: number;
+  insight: string | null;
+}
+
+function InsightCard({ locked, currentCount, requiredCount, insight }: InsightCardProps) {
+  if (locked) {
+    return (
+      <div className="bg-[#1e3a52] rounded-2xl p-6 flex flex-col gap-4 flex-1">
+        <p className="text-xs text-[#93abbe] uppercase tracking-wide font-semibold">
+          Behavioral Insight
+        </p>
+        <p className="text-sm text-white/70 leading-relaxed">
+          Log {Math.max(0, requiredCount - currentCount)} more reflection
+          {requiredCount - currentCount === 1 ? "" : "s"} to unlock pattern analysis.
+        </p>
+        <div className="mt-auto">
+          <span className="text-xs text-[#93abbe]">
+            {currentCount} / {requiredCount} logged
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#1e3a52] rounded-2xl p-6 flex flex-col gap-4 flex-1">
       <p className="text-xs text-[#93abbe] uppercase tracking-wide font-semibold">
         Behavioral Insight
       </p>
       <p className="text-sm text-white leading-relaxed">
-        You tend to increase position size by 40% when market volatility exceeds 12% — a sign of
-        FOMO-driven entry.
+        {insight ?? "No insight available right now. Try again later."}
       </p>
-      <div className="mt-auto">
-        <button className="text-xs text-white border border-white/40 rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors">
-          View Analysis Detail
-        </button>
-      </div>
     </div>
   );
 }
