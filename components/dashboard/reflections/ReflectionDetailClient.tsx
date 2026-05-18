@@ -264,39 +264,6 @@ function ReflectionDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* ── Was decision correct ── */}
-      {decision.was_decision_correct !== null && (
-        <div
-          className={cn(
-            "rounded-2xl px-6 py-4 flex items-center gap-3",
-            decision.was_decision_correct
-              ? "bg-emerald-50 border border-emerald-100"
-              : "bg-red-50 border border-red-100",
-          )}
-        >
-          <div>
-            <p
-              className={cn(
-                "text-sm font-semibold",
-                decision.was_decision_correct ? "text-emerald-700" : "text-red-700",
-              )}
-            >
-              {decision.was_decision_correct
-                ? "The decision was correct."
-                : "The decision was incorrect."}
-            </p>
-            <p
-              className={cn(
-                "text-xs mt-0.5",
-                decision.was_decision_correct ? "text-emerald-600" : "text-red-500",
-              )}
-            >
-              {dirCfg.label} · {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ── Price Chart ── */}
       <div className="bg-[#f3f5f7] rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-6">
