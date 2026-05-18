@@ -1,18 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 
-type TagVariant = "deviation" | "plan-aligned" | "manual";
+export type OutcomeTag = "favorable" | "unfavorable" | "neutral";
 
-const tagStyles: Record<TagVariant, string> = {
-  deviation: "bg-red-400 text-white",
-  "plan-aligned": "bg-emerald-500 text-white",
-  manual: "bg-[#9ca3af] text-white",
+const tagStyles: Record<OutcomeTag, string> = {
+  favorable: "bg-emerald-500 text-white",
+  unfavorable: "bg-red-400 text-white",
+  neutral: "bg-[#9ca3af] text-white",
 };
 
-const tagLabels: Record<TagVariant, string> = {
-  deviation: "Deviation",
-  "plan-aligned": "Plan-aligned",
-  manual: "Manual Entry",
+const tagLabels: Record<OutcomeTag, string> = {
+  favorable: "Favorable",
+  unfavorable: "Unfavorable",
+  neutral: "Neutral",
 };
 
 function ReflectionRow({
@@ -25,8 +25,8 @@ function ReflectionRow({
   id: string;
   title: string;
   date: string;
-  emotion: string;
-  tag: TagVariant;
+  emotion: string | null;
+  tag: OutcomeTag | null;
 }) {
   return (
     <Link href={`/dashboard/reflections/${id}`}>
@@ -37,14 +37,17 @@ function ReflectionRow({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-[#0d1f35] truncate">{title}</p>
           <p className="text-xs text-[#6b7280] mt-0.5">
-            {date}&nbsp;&nbsp;|&nbsp;&nbsp;Emotion: {emotion}
+            {date}
+            {emotion ? <>&nbsp;&nbsp;|&nbsp;&nbsp;Emotion: {emotion}</> : null}
           </p>
         </div>
-        <span
-          className={`text-xs font-semibold px-4 py-1.5 rounded-full shrink-0 ${tagStyles[tag]}`}
-        >
-          {tagLabels[tag]}
-        </span>
+        {tag && (
+          <span
+            className={`text-xs font-semibold px-4 py-1.5 rounded-full shrink-0 ${tagStyles[tag]}`}
+          >
+            {tagLabels[tag]}
+          </span>
+        )}
         <svg
           width="16"
           height="16"
