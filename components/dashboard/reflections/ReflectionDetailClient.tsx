@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2 } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2, TrendingUp } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,7 +13,7 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { apiGet, ApiError } from "@/lib/api";
+import { apiGet, apiPost, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { DIRECTION_CONFIG, OUTCOME_LABEL, OUTCOME_STYLE, SCENARIO_LABEL } from "./constants";
@@ -51,13 +51,26 @@ type PriceHistory = {
   history: PricePoint[];
 };
 
+type OptimalTiming = {
+  ticker: string;
+  start_date: string;
+  end_date: string;
+  best_buy: { date: string; price: number };
+  best_sell: { date: string; price: number };
+  max_return_percent: number;
+  summary_message: string;
+  data_points: number;
+};
+
 function ReflectionDetailClient({ id }: { id: string }) {
   const router = useRouter();
 
   const [decision, setDecision] = useState<Decision | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
+  const [optimal, setOptimal] = useState<OptimalTiming | null>(null);
   const [loadingDecision, setLoadingDecision] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
+  const [loadingOptimal, setLoadingOptimal] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,7 +116,25 @@ function ReflectionDetailClient({ id }: { id: string }) {
       }
     }
 
+    async function fetchOptimal() {
+      setLoadingOptimal(true);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const data: OptimalTiming = await apiPost("/optimal-timing", {
+          ticker: decision!.ticker,
+          start_date: decision!.decision_date,
+          end_date: today,
+        });
+        setOptimal(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingOptimal(false);
+      }
+    }
+
     fetchPriceHistory();
+    fetchOptimal();
   }, [decision]);
 
   // ── Loading ──
@@ -361,6 +392,47 @@ function ReflectionDetailClient({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* ── Optimal Timing (hindsight) ── */}
+      {loadingOptimal ? (
+        <Skeleton className="h-40 w-full" />
+      ) : optimal && optimal.data_points > 1 ? (
+        <div className="border border-[#e8eaed] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#0d1f35]" />
+            <h2 className="text-sm font-bold text-[#0d1f35]">Hindsight · Best Entry & Exit</h2>
+            <span className="text-xs text-[#9ca3af] ml-auto">
+              {formatDate(optimal.start_date)} to {formatDate(optimal.end_date)}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-[#f3f5f7] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
+                Best Buy
+              </p>
+              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_buy.price)}</p>
+              <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_buy.date)}</p>
+            </div>
+            <div className="bg-[#f3f5f7] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
+                Best Sell
+              </p>
+              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_sell.price)}</p>
+              <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_sell.date)}</p>
+            </div>
+            <div className="bg-[#0d1f35] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-2">
+                Max Return
+              </p>
+              <p className="text-2xl font-bold text-emerald-400">
+                {formatPercent(optimal.max_return_percent)}
+              </p>
+              <p className="text-xs text-[#93abbe] mt-1">Theoretical, hindsight only</p>
+            </div>
+          </div>
+          <p className="text-xs text-[#6b7280] leading-relaxed">{optimal.summary_message}</p>
+        </div>
+      ) : null}
 
       {/* ── Reflection ── */}
       {decision.reflection && (
