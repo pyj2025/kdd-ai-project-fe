@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2, TrendingUp, Trash2 } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,7 +13,17 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { apiGet, apiPost, ApiError } from "@/lib/api";
+import { apiDelete, apiGet, apiPost, ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { DIRECTION_CONFIG, OUTCOME_LABEL, OUTCOME_STYLE, SCENARIO_LABEL } from "./constants";
@@ -72,6 +82,27 @@ function ReflectionDetailClient({ id }: { id: string }) {
   const [loadingChart, setLoadingChart] = useState(true);
   const [loadingOptimal, setLoadingOptimal] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await apiDelete(`/decisions/${id}`);
+      router.push("/dashboard/reflections");
+    } catch (err) {
+      console.error(err);
+      if (err instanceof ApiError && err.status === 404) {
+        // Already gone — treat as success.
+        router.push("/dashboard/reflections");
+      } else {
+        setDeleteError("Couldn't delete right now. Please try again.");
+        setDeleting(false);
+      }
+    }
+  };
 
   const fetchDecision = useCallback(() => {
     let cancelled = false;
@@ -471,6 +502,53 @@ function ReflectionDetailClient({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* ── Delete (destructive) ── */}
+      <div className="pt-4 flex flex-col items-start gap-2 border-t border-[#e8eaed]">
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium h-9 px-3"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete this reflection
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-[#0d1f35]">Delete this reflection?</DialogTitle>
+              <DialogDescription className="text-[#6b7280] pt-2">
+                {decision.title || `${decision.ticker} (${SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type})`}{" "}
+                logged on {formatDate(decision.decision_date)}. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {deleteError && (
+              <p className="text-xs text-red-600">{deleteError}</p>
+            )}
+            <DialogFooter className="flex gap-2 sm:gap-2 sm:justify-end mt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="text-[#6b7280]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
