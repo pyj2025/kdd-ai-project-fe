@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
 import ConsistencyCard from "./ConsistencyCard";
 import InsightCard from "./InsightCard";
@@ -31,39 +31,70 @@ type InsightsResponse =
 function StatCards() {
   const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const fetchAll = useCallback(() => {
+    setLoading(true);
+    setErrorMsg(null);
     Promise.all([apiGet("/patterns"), apiGet("/patterns/insights")])
       .then(([p, i]) => {
-        if (cancelled) return;
         setPatterns(p);
         setInsights(i);
-        setError(null);
       })
       .catch(err => {
-        if (!cancelled) setError(err.message ?? "Failed to load patterns");
-      });
-
-    return () => {
-      cancelled = true;
-    };
+        setErrorMsg(err.message ?? "Couldn't load your patterns right now.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (error) {
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  // Error state: keep 3-card layout so the grid doesn't reflow, but each
+  // card shows the friendly retry surface instead of the value.
+  if (errorMsg) {
     return (
-      <div className="flex-1 bg-[#f3f5f7] rounded-2xl p-6 text-sm text-red-600">{error}</div>
+      <>
+        <ConsistencyCard
+          loading={false}
+          errorMsg={errorMsg}
+          onRetry={fetchAll}
+          locked
+          currentCount={0}
+          requiredCount={10}
+          score={null}
+        />
+        <PeakCard
+          loading={false}
+          errorMsg={errorMsg}
+          onRetry={fetchAll}
+          locked
+          currentCount={0}
+          requiredCount={10}
+          avgDistance={null}
+        />
+        <InsightCard
+          loading={false}
+          errorMsg={errorMsg}
+          onRetry={fetchAll}
+          locked
+          currentCount={0}
+          requiredCount={10}
+          insight={null}
+        />
+      </>
     );
   }
 
-  if (!patterns) {
+  // Loading state OR initial render before fetch resolves.
+  if (loading || !patterns) {
     return (
       <>
-        <ConsistencyCard locked currentCount={0} requiredCount={10} score={null} />
-        <PeakCard locked currentCount={0} requiredCount={10} avgDistance={null} />
-        <InsightCard locked currentCount={0} requiredCount={10} insight={null} />
+        <ConsistencyCard loading locked currentCount={0} requiredCount={10} score={null} />
+        <PeakCard loading locked currentCount={0} requiredCount={10} avgDistance={null} />
+        <InsightCard loading locked currentCount={0} requiredCount={10} insight={null} />
       </>
     );
   }
@@ -72,18 +103,21 @@ function StatCards() {
     return (
       <>
         <ConsistencyCard
+          loading={false}
           locked
           currentCount={patterns.current_count}
           requiredCount={patterns.required_count}
           score={null}
         />
         <PeakCard
+          loading={false}
           locked
           currentCount={patterns.current_count}
           requiredCount={patterns.required_count}
           avgDistance={null}
         />
         <InsightCard
+          loading={false}
           locked
           currentCount={patterns.current_count}
           requiredCount={patterns.required_count}
@@ -99,18 +133,21 @@ function StatCards() {
   return (
     <>
       <ConsistencyCard
+        loading={false}
         locked={false}
         currentCount={patterns.decision_count}
         requiredCount={10}
         score={patterns.metrics.consistency_score}
       />
       <PeakCard
+        loading={false}
         locked={false}
         currentCount={patterns.decision_count}
         requiredCount={10}
         avgDistance={patterns.metrics.avg_distance_from_peak_percent}
       />
       <InsightCard
+        loading={false}
         locked={false}
         currentCount={patterns.decision_count}
         requiredCount={10}
