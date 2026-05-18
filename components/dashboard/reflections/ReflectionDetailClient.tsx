@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2, TrendingUp } from "lucide-react";
 import {
@@ -73,21 +73,21 @@ function ReflectionDetailClient({ id }: { id: string }) {
   const [loadingOptimal, setLoadingOptimal] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchDecision = useCallback(() => {
     let cancelled = false;
     setLoadingDecision(true);
+    setError(null);
     apiGet(`/decisions/${id}`)
       .then(data => {
         if (cancelled) return;
         setDecision(data as Decision);
-        setError(null);
       })
       .catch(err => {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 404) {
           setError("Reflection not found.");
         } else {
-          setError(err.message ?? "Failed to load reflection.");
+          setError("Couldn't load this reflection right now.");
         }
       })
       .finally(() => {
@@ -97,6 +97,11 @@ function ReflectionDetailClient({ id }: { id: string }) {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    const cancel = fetchDecision();
+    return cancel;
+  }, [fetchDecision]);
 
   // 2) FastAPI에서 price history 가져오기
   useEffect(() => {
@@ -154,12 +159,28 @@ function ReflectionDetailClient({ id }: { id: string }) {
   }
 
   if (error || !decision) {
+    const isNotFound = error === "Reflection not found.";
     return (
-      <div className="px-8 py-16 text-center">
+      <div className="px-8 py-16 text-center space-y-4">
         <p className="text-[#6b7280] text-sm">{error ?? "Something went wrong."}</p>
-        <button onClick={() => router.back()} className="mt-4 text-xs text-[#0d1f35] underline">
-          Go back
-        </button>
+        <div className="flex justify-center gap-2">
+          {!isNotFound && (
+            <button
+              type="button"
+              onClick={fetchDecision}
+              className="text-xs font-medium text-[#0d1f35] border border-[#d1d5db] rounded-full px-4 py-1.5 hover:bg-[#f3f5f7]"
+            >
+              Retry
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-xs font-medium text-[#6b7280] underline"
+          >
+            Go back
+          </button>
+        </div>
       </div>
     );
   }

@@ -32,11 +32,13 @@ function NewPage() {
   const [emotion, setEmotion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleExtract = async () => {
     if (thought.trim().length < 3) return;
     setExtractLoading(true);
+    setExtractError(null);
     try {
       const data = await apiPost("/parse-decision", { text: thought });
       const { extracted, confidence } = data;
@@ -61,6 +63,7 @@ function NewPage() {
       }
     } catch (err) {
       console.error(err);
+      setExtractError("Couldn't extract details. Try again, or fill in the form below.");
     } finally {
       setExtractLoading(false);
     }
@@ -132,10 +135,12 @@ function NewPage() {
 
       router.push(`/dashboard/reflections/${saved.id}`);
     } catch (err) {
-      if (err instanceof ApiError) {
+      // 4xx (validation, 50-cap, etc.) carry actionable messages — show them.
+      // 5xx or network drops aren't user-fixable, so show a generic line.
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
         setSubmitError(err.message);
       } else {
-        setSubmitError("Something went wrong. Please try again.");
+        setSubmitError("Couldn't save right now. Please try again.");
       }
       console.error(err);
     } finally {
@@ -165,6 +170,7 @@ function NewPage() {
           onExtract={handleExtract}
           extractLoading={extractLoading}
         />
+        {extractError && <p className="text-xs text-red-600">{extractError}</p>}
       </div>
 
       {/* ── Step 2 header ── */}

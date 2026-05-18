@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ReflectionRow, { OutcomeTag } from "@/components/dashboard/ReflectionRow";
 import { apiGet } from "@/lib/api";
 
@@ -51,8 +51,10 @@ function RecentReflections() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchRecent = useCallback(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     apiGet("/decisions?sort=-decision_date")
       .then(res => {
         if (cancelled) return;
@@ -66,10 +68,9 @@ function RecentReflections() {
             tag: d.outcome,
           })),
         );
-        setError(null);
       })
-      .catch(err => {
-        if (!cancelled) setError(err.message ?? "Failed to load reflections");
+      .catch(() => {
+        if (!cancelled) setError("Couldn't load recent reflections.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -79,8 +80,26 @@ function RecentReflections() {
     };
   }, []);
 
+  useEffect(() => {
+    const cancel = fetchRecent();
+    return cancel;
+  }, [fetchRecent]);
+
   if (loading) return <p className="text-sm text-[#6b7280] py-6">Loading...</p>;
-  if (error) return <p className="text-sm text-red-600 py-6">{error}</p>;
+  if (error) {
+    return (
+      <div className="py-6">
+        <p className="text-sm text-[#6b7280]">{error}</p>
+        <button
+          type="button"
+          onClick={fetchRecent}
+          className="mt-2 text-xs font-medium text-[#0d1f35] border border-[#d1d5db] rounded-full px-3 py-1 hover:bg-[#f3f5f7]"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
   if (items.length === 0) {
     return <p className="text-sm text-[#6b7280] py-6">No reflections yet. Write your first one!</p>;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import FilterDialog, { Filters } from "@/components/dashboard/reflections/FilterDialog";
 import Pagination from "@/components/dashboard/reflections/Pagination";
 import ReflectionRow, { OutcomeTag } from "@/components/dashboard/ReflectionRow";
@@ -58,9 +58,10 @@ function ReflectionsClient() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<Filters>({ tag: "all", emotion: "all" });
 
-  useEffect(() => {
+  const fetchReflections = useCallback(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     apiGet("/decisions?sort=-decision_date")
       .then(res => {
         if (cancelled) return;
@@ -74,10 +75,9 @@ function ReflectionsClient() {
           rawEmotion: d.emotion,
         }));
         setReflections(mapped);
-        setError(null);
       })
-      .catch(err => {
-        if (!cancelled) setError(err.message ?? "Failed to load reflections");
+      .catch(() => {
+        if (!cancelled) setError("Couldn't load your reflections right now.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -86,6 +86,11 @@ function ReflectionsClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const cancel = fetchReflections();
+    return cancel;
+  }, [fetchReflections]);
 
   const filtered = useMemo(
     () =>
@@ -118,7 +123,16 @@ function ReflectionsClient() {
         {loading ? (
           <p className="text-sm text-[#6b7280] py-10 text-center">Loading...</p>
         ) : error ? (
-          <p className="text-sm text-red-600 py-10 text-center">{error}</p>
+          <div className="py-10 text-center">
+            <p className="text-sm text-[#6b7280]">{error}</p>
+            <button
+              type="button"
+              onClick={fetchReflections}
+              className="mt-3 text-xs font-medium text-[#0d1f35] border border-[#d1d5db] rounded-full px-4 py-1.5 hover:bg-[#f3f5f7]"
+            >
+              Retry
+            </button>
+          </div>
         ) : paginated.length === 0 ? (
           <p className="text-sm text-[#6b7280] py-10 text-center">No Reflections</p>
         ) : (
