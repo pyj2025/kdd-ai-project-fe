@@ -18,46 +18,6 @@ import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeature
 import TickerInput from "@/components/dashboard/reflections/new/TickerInput";
 import EmotionPicker from "@/components/dashboard/reflections/new/EmotionPicker";
 
-type ResultState = {
-  ticker: string;
-  scenario: string;
-  decisionDate: string | null;
-  decisionPrice: number | null;
-  currentPrice: number | null;
-  diffPercent: number | null;
-  outcome: string | null;
-  reflection: string | null;
-};
-
-const SCENARIO_LABEL: Record<string, string> = {
-  no_buy: "No Buy",
-  no_sell: "No Sell",
-  sold_too_early: "Sold Early",
-};
-
-const OUTCOME_LABEL: Record<string, string> = {
-  favorable: "Favorable",
-  unfavorable: "Unfavorable",
-  neutral: "Neutral",
-};
-
-const OUTCOME_STYLE: Record<string, string> = {
-  favorable: "bg-emerald-100 text-emerald-700",
-  unfavorable: "bg-red-100 text-red-700",
-  neutral: "bg-gray-100 text-gray-700",
-};
-
-const formatUsd = (n: number | null) =>
-  n == null
-    ? "N/A"
-    : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
-
-const formatPercent = (n: number | null) => {
-  if (n == null) return "N/A";
-  const sign = n > 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
-};
-
 function NewPage() {
   const router = useRouter();
 
@@ -170,7 +130,7 @@ function NewPage() {
         console.error("reflect/patch failed (decision still saved)", e);
       }
 
-      router.push("/dashboard");
+      router.push(`/dashboard/reflections/${saved.id}`);
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.message);
