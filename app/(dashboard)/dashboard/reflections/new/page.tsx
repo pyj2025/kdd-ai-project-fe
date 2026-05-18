@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { format, parse } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { ApiError, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import ThoughtTextarea from "@/components/dashboard/reflections/new/ThinkingText
 import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
 import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
 import TickerInput from "@/components/dashboard/reflections/new/TickerInput";
+import EmotionPicker from "@/components/dashboard/reflections/new/EmotionPicker";
 
 type ResultState = {
   ticker: string;
@@ -59,7 +60,6 @@ const formatPercent = (n: number | null) => {
 
 function NewPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [thought, setThought] = useState("");
   const [ticker, setTicker] = useState("");
@@ -68,20 +68,17 @@ function NewPage() {
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState("");
   const [scenario, setScenario] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [emotion, setEmotion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractLoading, setExtractLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleExtract = async () => {
     if (thought.trim().length < 3) return;
     setExtractLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/parse-decision`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: thought }),
-      });
-      if (!res.ok) throw new Error(`Parse error ${res.status}`);
-      const data = await res.json();
+      const data = await apiPost("/parse-decision", { text: thought });
       const { extracted, confidence } = data;
       const THRESHOLD = 0.7;
       if (extracted.ticker && confidence.ticker >= THRESHOLD && data.ticker_validated) {
@@ -99,6 +96,9 @@ function NewPage() {
       if (extracted.amount != null && confidence.amount >= THRESHOLD) {
         setAmount(String(extracted.amount));
       }
+      if (extracted.title && confidence.title >= THRESHOLD) {
+        setTitle(extracted.title);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -107,96 +107,76 @@ function NewPage() {
   };
 
   const handleSubmit = async () => {
-    if (!ticker || !scenario) return;
+    if (!ticker || !scenario || !date) return;
 
     setLoading(true);
+    setSubmitError(null);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
       const quantityNum = quantity ? Number(quantity) : null;
       const amountNum = amount ? Number(amount) : null;
-      const decisionDate = date ? format(date, "yyyy-MM-dd") : null;
+      const decisionDate = format(date, "yyyy-MM-dd");
 
-      const [calcRes, prevQuery] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/calculate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ticker,
-            scenario_type: scenario,
-            decision_date: decisionDate,
-            quantity: quantityNum,
-            amount: amountNum,
-          }),
-        }),
-        supabase
-          .from("decisions")
-          .select("ticker, scenario_type, decision_date, diff_percent, direction, outcome")
-          .eq("user_id", user.id)
-          .not("diff_percent", "is", null)
-          .not("direction", "is", null)
-          .not("outcome", "is", null)
-          .order("decision_date", { ascending: false })
-          .limit(10),
-      ]);
-
-      if (!calcRes.ok) throw new Error(`Calculate error ${calcRes.status}`);
-      const calc = await calcRes.json();
-      if (prevQuery.error) throw new Error(prevQuery.error.message);
-      const previousDecisions = prevQuery.data ?? [];
-
-      let reflection: string | null = null;
-      try {
-        const reflectRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reflect`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ticker,
-            scenario_type: scenario,
-            decision_date: decisionDate,
-            diff_percent: calc.diff_percent,
-            direction: calc.direction,
-            outcome: calc.outcome,
-            previous_decisions: previousDecisions,
-          }),
-        });
-        if (reflectRes.ok) {
-          const r = await reflectRes.json();
-          reflection = r.degraded ? null : r.reflection || null;
-        }
-      } catch (e) {
-        console.error("reflect failed", e);
-      }
-
-      const { error } = await supabase.from("decisions").insert({
-        user_id: user.id,
+      const saved = await apiPost("/decisions", {
         ticker,
         scenario_type: scenario,
         decision_date: decisionDate,
         quantity: quantityNum,
         amount: amountNum,
-        decision_price_snapshot: calc.decision_price ?? null,
-        current_price: calc.current_price ?? null,
-        diff_amount: calc.diff_amount ?? null,
-        diff_percent: calc.diff_percent ?? null,
-        direction: calc.direction ?? null,
-        outcome: calc.outcome ?? null,
-        was_decision_correct: calc.was_decision_correct ?? null,
-        actual_date_used: calc.actual_date_used ?? null,
-        current_date_snapshot: calc.current_date ?? null,
-        decision_price_source: calc.decision_price_source ?? null,
-        reflection,
         notes: thought || null,
+        title: title.trim() || null,
+        emotion: emotion ?? null,
       });
 
-      if (error) throw new Error(error.message);
+      try {
+        const list = await apiGet("/decisions?sort=-decision_date");
+        const previousDecisions = (list.items ?? [])
+          .filter((d: { id: string }) => d.id !== saved.id)
+          .slice(0, 10)
+          .map((d: {
+            ticker: string;
+            scenario_type: string;
+            decision_date: string;
+            diff_percent: number | null;
+            direction: string | null;
+            outcome: string | null;
+          }) => ({
+            ticker: d.ticker,
+            scenario_type: d.scenario_type,
+            decision_date: d.decision_date,
+            diff_percent: d.diff_percent,
+            direction: d.direction,
+            outcome: d.outcome,
+          }))
+          .filter((d: { diff_percent: number | null; direction: string | null; outcome: string | null }) =>
+            d.diff_percent != null && d.direction != null && d.outcome != null,
+          );
+
+        const reflectRes = await apiPost("/reflect", {
+          ticker: saved.ticker,
+          scenario_type: saved.scenario_type,
+          decision_date: saved.decision_date,
+          diff_percent: saved.diff_percent,
+          direction: saved.direction,
+          outcome: saved.outcome,
+          previous_decisions: previousDecisions,
+        });
+
+        const reflectionText = reflectRes.degraded ? null : reflectRes.reflection || null;
+        if (reflectionText) {
+          await apiPatch(`/decisions/${saved.id}`, { reflection: reflectionText });
+        }
+      } catch (e) {
+        console.error("reflect/patch failed (decision still saved)", e);
+      }
 
       router.push("/dashboard");
     } catch (err) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError("Something went wrong. Please try again.");
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -231,6 +211,20 @@ function NewPage() {
       <p className="text-xs font-bold text-[#0d1f35] uppercase tracking-widest">
         Step 2. Decision details
       </p>
+
+      {/* ── Title ── */}
+      <div className="space-y-2">
+        <Label className="text-[10px] font-bold uppercase tracking-widest text-[#0d1f35]">
+          Title <span className="text-[#9ca3af] font-normal normal-case tracking-normal">(optional)</span>
+        </Label>
+        <Input
+          placeholder="e.g. NVDA Earnings Dip Skipped"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          maxLength={120}
+          className="h-12 bg-[#dce3eb] border-0 rounded text-sm text-[#0d1f35] placeholder:text-[#8fa0b0] focus-visible:ring-1 focus-visible:ring-[#0d1f35] shadow-none"
+        />
+      </div>
 
       {/* ── Inputs row ── */}
       <div className="grid grid-cols-4 gap-6">
@@ -303,6 +297,9 @@ function NewPage() {
         <ScenarioType scenario={scenario} setScenario={setScenario} />
       </div>
 
+      {/* ── Emotion ── */}
+      <EmotionPicker emotion={emotion} setEmotion={setEmotion} />
+
       {/* ── Submit ── */}
       <div className="flex flex-col items-center gap-2">
         <Button
@@ -312,6 +309,9 @@ function NewPage() {
         >
           {loading ? "Loading..." : "Continue Reflection"}
         </Button>
+        {submitError && (
+          <p className="text-xs text-red-600 max-w-lg text-center">{submitError}</p>
+        )}
         <p className="text-xs text-[#9ca3af]">
           Your inputs are encrypted and private to your journal.
         </p>
