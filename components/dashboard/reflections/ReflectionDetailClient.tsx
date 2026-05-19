@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2 } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, DollarSign, BarChart2, TrendingUp, Trash2 } from "lucide-react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -13,7 +13,17 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { createClient } from "@/lib/supabase/client";
+import { apiDelete, apiGet, apiPost, ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { DIRECTION_CONFIG, OUTCOME_LABEL, OUTCOME_STYLE, SCENARIO_LABEL } from "./constants";
@@ -35,6 +45,8 @@ type Decision = {
   was_decision_correct: boolean | null;
   notes: string | null;
   reflection: string | null;
+  title: string | null;
+  emotion: string | null;
   quantity: number | null;
   amount: number | null;
 };
@@ -49,32 +61,78 @@ type PriceHistory = {
   history: PricePoint[];
 };
 
+type OptimalTiming = {
+  ticker: string;
+  start_date: string;
+  end_date: string;
+  best_buy: { date: string; price: number };
+  best_sell: { date: string; price: number };
+  max_return_percent: number;
+  summary_message: string;
+  data_points: number;
+};
+
 function ReflectionDetailClient({ id }: { id: string }) {
   const router = useRouter();
-  const supabase = createClient();
 
   const [decision, setDecision] = useState<Decision | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
+  const [optimal, setOptimal] = useState<OptimalTiming | null>(null);
   const [loadingDecision, setLoadingDecision] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
+  const [loadingOptimal, setLoadingOptimal] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // 1) Supabase에서 decision 가져오기
-  useEffect(() => {
-    async function fetchDecision() {
-      const { data, error } = await supabase.from("decisions").select("*").eq("id", id).single();
-
-      if (error || !data) {
-        setError("Reflection not found.");
-        setLoadingDecision(false);
-        return;
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await apiDelete(`/decisions/${id}`);
+      router.push("/dashboard/reflections");
+    } catch (err) {
+      console.error(err);
+      if (err instanceof ApiError && err.status === 404) {
+        // Already gone — treat as success.
+        router.push("/dashboard/reflections");
+      } else {
+        setDeleteError("Couldn't delete right now. Please try again.");
+        setDeleting(false);
       }
-
-      setDecision(data as Decision);
-      setLoadingDecision(false);
     }
-    fetchDecision();
+  };
+
+  const fetchDecision = useCallback(() => {
+    let cancelled = false;
+    setLoadingDecision(true);
+    setError(null);
+    apiGet(`/decisions/${id}`)
+      .then(data => {
+        if (cancelled) return;
+        setDecision(data as Decision);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setError("Reflection not found.");
+        } else {
+          setError("Couldn't load this reflection right now.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDecision(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  useEffect(() => {
+    const cancel = fetchDecision();
+    return cancel;
+  }, [fetchDecision]);
 
   // 2) FastAPI에서 price history 가져오기
   useEffect(() => {
@@ -83,11 +141,9 @@ function ReflectionDetailClient({ id }: { id: string }) {
     async function fetchPriceHistory() {
       setLoadingChart(true);
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/price-history/${decision!.ticker}?decision_date=${decision!.decision_date}`,
+        const data: PriceHistory = await apiGet(
+          `/price-history/${decision!.ticker}?decision_date=${decision!.decision_date}`,
         );
-        if (!res.ok) throw new Error("Failed to fetch price history");
-        const data: PriceHistory = await res.json();
         setPriceHistory(data);
       } catch (e) {
         console.error(e);
@@ -96,7 +152,25 @@ function ReflectionDetailClient({ id }: { id: string }) {
       }
     }
 
+    async function fetchOptimal() {
+      setLoadingOptimal(true);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const data: OptimalTiming = await apiPost("/optimal-timing", {
+          ticker: decision!.ticker,
+          start_date: decision!.decision_date,
+          end_date: today,
+        });
+        setOptimal(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingOptimal(false);
+      }
+    }
+
     fetchPriceHistory();
+    fetchOptimal();
   }, [decision]);
 
   // ── Loading ──
@@ -116,12 +190,28 @@ function ReflectionDetailClient({ id }: { id: string }) {
   }
 
   if (error || !decision) {
+    const isNotFound = error === "Reflection not found.";
     return (
-      <div className="px-8 py-16 text-center">
+      <div className="px-8 py-16 text-center space-y-4">
         <p className="text-[#6b7280] text-sm">{error ?? "Something went wrong."}</p>
-        <button onClick={() => router.back()} className="mt-4 text-xs text-[#0d1f35] underline">
-          Go back
-        </button>
+        <div className="flex justify-center gap-2">
+          {!isNotFound && (
+            <button
+              type="button"
+              onClick={fetchDecision}
+              className="text-xs font-medium text-[#0d1f35] border border-[#d1d5db] rounded-full px-4 py-1.5 hover:bg-[#f3f5f7]"
+            >
+              Retry
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-xs font-medium text-[#6b7280] underline"
+          >
+            Go back
+          </button>
+        </div>
       </div>
     );
   }
@@ -147,7 +237,10 @@ function ReflectionDetailClient({ id }: { id: string }) {
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="min-w-0">
+          {decision.title && (
+            <p className="text-xs text-[#6b7280] mb-1 truncate">{decision.title}</p>
+          )}
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-5xl font-bold text-[#0d1f35] leading-tight">{decision.ticker}</h1>
             {decision.outcome && (
@@ -161,7 +254,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-[#6b7280]">
+          <div className="flex items-center gap-3 text-xs text-[#6b7280] flex-wrap">
             <span className="flex items-center gap-1">
               <Tag className="w-3 h-3" />
               {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
@@ -171,6 +264,15 @@ function ReflectionDetailClient({ id }: { id: string }) {
               <Calendar className="w-3 h-3" />
               {formatDate(decision.decision_date)}
             </span>
+            {decision.emotion && (
+              <>
+                <span>·</span>
+                <span>
+                  Emotion:{" "}
+                  {decision.emotion.charAt(0).toUpperCase() + decision.emotion.slice(1)}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -214,45 +316,13 @@ function ReflectionDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* ── Was decision correct ── */}
-      {decision.was_decision_correct !== null && (
-        <div
-          className={cn(
-            "rounded-2xl px-6 py-4 flex items-center gap-3",
-            decision.was_decision_correct
-              ? "bg-emerald-50 border border-emerald-100"
-              : "bg-red-50 border border-red-100",
-          )}
-        >
-          <span className="text-2xl">{decision.was_decision_correct ? "✅" : "❌"}</span>
-          <div>
-            <p
-              className={cn(
-                "text-sm font-semibold",
-                decision.was_decision_correct ? "text-emerald-700" : "text-red-700",
-              )}
-            >
-              {decision.was_decision_correct
-                ? "The decision was correct."
-                : "The decision was incorrect."}
-            </p>
-            <p
-              className={cn(
-                "text-xs mt-0.5",
-                decision.was_decision_correct ? "text-emerald-600" : "text-red-500",
-              )}
-            >
-              {dirCfg.label} — {SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ── Price Chart ── */}
       <div className="bg-[#f3f5f7] rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart2 className="w-4 h-4 text-[#0d1f35]" />
-          <h2 className="text-sm font-bold text-[#0d1f35]">Price History — {decision.ticker}</h2>
+          <h2 className="text-sm font-bold text-[#0d1f35]">
+            Price History · {decision.ticker}
+          </h2>
           <span className="text-xs text-[#9ca3af] ml-auto">
             60 days before · 90 days after decision
           </span>
@@ -267,7 +337,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8eaed" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={v => {
+                  tickFormatter={(v: string) => {
                     try {
                       return format(parseISO(v), "MMM d");
                     } catch {
@@ -284,7 +354,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
                   tick={{ fontSize: 10, fill: "#9ca3af" }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={v => `$${v.toFixed(0)}`}
+                  tickFormatter={(v: number) => `$${v.toFixed(0)}`}
                   width={52}
                 />
                 <Tooltip content={<ChartTooltip />} />
@@ -342,11 +412,52 @@ function ReflectionDetailClient({ id }: { id: string }) {
         )}
       </div>
 
-      {/* ── AI Reflection ── */}
+      {/* ── Optimal Timing (hindsight) ── */}
+      {loadingOptimal ? (
+        <Skeleton className="h-40 w-full" />
+      ) : optimal && optimal.data_points > 1 ? (
+        <div className="border border-[#e8eaed] rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#0d1f35]" />
+            <h2 className="text-sm font-bold text-[#0d1f35]">Hindsight · Best Entry & Exit</h2>
+            <span className="text-xs text-[#9ca3af] ml-auto">
+              {formatDate(optimal.start_date)} to {formatDate(optimal.end_date)}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-[#f3f5f7] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
+                Best Buy
+              </p>
+              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_buy.price)}</p>
+              <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_buy.date)}</p>
+            </div>
+            <div className="bg-[#f3f5f7] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
+                Best Sell
+              </p>
+              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_sell.price)}</p>
+              <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_sell.date)}</p>
+            </div>
+            <div className="bg-[#0d1f35] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-2">
+                Max Return
+              </p>
+              <p className="text-2xl font-bold text-emerald-400">
+                {formatPercent(optimal.max_return_percent)}
+              </p>
+              <p className="text-xs text-[#93abbe] mt-1">Theoretical, hindsight only</p>
+            </div>
+          </div>
+          <p className="text-xs text-[#6b7280] leading-relaxed">{optimal.summary_message}</p>
+        </div>
+      ) : null}
+
+      {/* ── Reflection ── */}
       {decision.reflection && (
         <div className="bg-[#0d1f35] rounded-2xl p-8">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-3">
-            AI Reflection
+            Reflection
           </p>
           <p className="text-white text-sm leading-relaxed">{decision.reflection}</p>
         </div>
@@ -391,6 +502,53 @@ function ReflectionDetailClient({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* ── Delete (destructive) ── */}
+      <div className="pt-4 flex flex-col items-start gap-2 border-t border-[#e8eaed]">
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium h-9 px-3"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete this reflection
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-[#0d1f35]">Delete this reflection?</DialogTitle>
+              <DialogDescription className="text-[#6b7280] pt-2">
+                {decision.title || `${decision.ticker} (${SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type})`}{" "}
+                logged on {formatDate(decision.decision_date)}. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            {deleteError && (
+              <p className="text-xs text-red-600">{deleteError}</p>
+            )}
+            <DialogFooter className="flex gap-2 sm:gap-2 sm:justify-end mt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="text-[#6b7280]"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

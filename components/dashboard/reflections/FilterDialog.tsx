@@ -18,11 +18,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal } from "lucide-react";
-
-type TagVariant = "deviation" | "plan-aligned" | "manual";
+import type { OutcomeTag } from "@/components/dashboard/ReflectionRow";
 
 export type Filters = {
-  tag: TagVariant | "all";
+  tag: OutcomeTag | "all";
   emotion: string;
 };
 
@@ -56,7 +55,7 @@ function FilterDialog({ filters, onApply }: { filters: Filters; onApply: (f: Fil
         <div className="space-y-5 mt-2">
           <div className="space-y-1.5">
             <Label className="text-xs font-bold uppercase tracking-widest text-[#6b7280]">
-              Tag
+              Outcome
             </Label>
             <Select
               value={local.tag}
@@ -67,9 +66,9 @@ function FilterDialog({ filters, onApply }: { filters: Filters; onApply: (f: Fil
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="deviation">Deviation</SelectItem>
-                <SelectItem value="plan-aligned">Plan-aligned</SelectItem>
-                <SelectItem value="manual">Manual Entry</SelectItem>
+                <SelectItem value="favorable">Favorable</SelectItem>
+                <SelectItem value="unfavorable">Unfavorable</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -87,12 +86,13 @@ function FilterDialog({ filters, onApply }: { filters: Filters; onApply: (f: Fil
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="High Anxiety">High Anxiety</SelectItem>
-                <SelectItem value="Neutral">Neutral</SelectItem>
-                <SelectItem value="Cautious">Cautious</SelectItem>
-                <SelectItem value="Fear">Fear</SelectItem>
-                <SelectItem value="Greed">Greed</SelectItem>
-                <SelectItem value="Optimistic">Optimistic</SelectItem>
+                <SelectItem value="confident">Confident</SelectItem>
+                <SelectItem value="optimistic">Optimistic</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
+                <SelectItem value="cautious">Cautious</SelectItem>
+                <SelectItem value="anxious">Anxious</SelectItem>
+                <SelectItem value="fearful">Fearful</SelectItem>
+                <SelectItem value="greedy">Greedy</SelectItem>
               </SelectContent>
             </Select>
           </div>
