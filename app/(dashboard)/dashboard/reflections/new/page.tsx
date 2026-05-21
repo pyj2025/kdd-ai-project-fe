@@ -17,6 +17,7 @@ import ScenarioType from "@/components/dashboard/reflections/new/ScenarioType";
 import FooterFeatures from "@/components/dashboard/reflections/new/FooterFeatures";
 import TickerInput from "@/components/dashboard/reflections/new/TickerInput";
 import EmotionPicker from "@/components/dashboard/reflections/new/EmotionPicker";
+import { toast } from "sonner";
 
 function NewPage() {
   const router = useRouter();
@@ -96,23 +97,29 @@ function NewPage() {
         const previousDecisions = (list.items ?? [])
           .filter((d: { id: string }) => d.id !== saved.id)
           .slice(0, 10)
-          .map((d: {
-            ticker: string;
-            scenario_type: string;
-            decision_date: string;
-            diff_percent: number | null;
-            direction: string | null;
-            outcome: string | null;
-          }) => ({
-            ticker: d.ticker,
-            scenario_type: d.scenario_type,
-            decision_date: d.decision_date,
-            diff_percent: d.diff_percent,
-            direction: d.direction,
-            outcome: d.outcome,
-          }))
-          .filter((d: { diff_percent: number | null; direction: string | null; outcome: string | null }) =>
-            d.diff_percent != null && d.direction != null && d.outcome != null,
+          .map(
+            (d: {
+              ticker: string;
+              scenario_type: string;
+              decision_date: string;
+              diff_percent: number | null;
+              direction: string | null;
+              outcome: string | null;
+            }) => ({
+              ticker: d.ticker,
+              scenario_type: d.scenario_type,
+              decision_date: d.decision_date,
+              diff_percent: d.diff_percent,
+              direction: d.direction,
+              outcome: d.outcome,
+            }),
+          )
+          .filter(
+            (d: {
+              diff_percent: number | null;
+              direction: string | null;
+              outcome: string | null;
+            }) => d.diff_percent != null && d.direction != null && d.outcome != null,
           );
 
         const reflectRes = await apiPost("/reflect", {
@@ -133,6 +140,9 @@ function NewPage() {
         console.error("reflect/patch failed (decision still saved)", e);
       }
 
+      toast.success("Decision saved", {
+        description: "Redirecting to your reflection...",
+      });
       router.push(`/dashboard/reflections/${saved.id}`);
     } catch (err) {
       // 4xx (validation, 50-cap, etc.) carry actionable messages — show them.
@@ -181,7 +191,8 @@ function NewPage() {
       {/* ── Title ── */}
       <div className="space-y-2">
         <Label className="text-[10px] font-bold uppercase tracking-widest text-[#0d1f35]">
-          Title <span className="text-[#9ca3af] font-normal normal-case tracking-normal">(optional)</span>
+          Title{" "}
+          <span className="text-[#9ca3af] font-normal normal-case tracking-normal">(optional)</span>
         </Label>
         <Input
           placeholder="e.g. NVDA Earnings Dip Skipped"
@@ -275,9 +286,7 @@ function NewPage() {
         >
           {loading ? "Loading..." : "Continue Reflection"}
         </Button>
-        {submitError && (
-          <p className="text-xs text-red-600 max-w-lg text-center">{submitError}</p>
-        )}
+        {submitError && <p className="text-xs text-red-600 max-w-lg text-center">{submitError}</p>}
         <p className="text-xs text-[#9ca3af]">
           Your inputs are encrypted and private to your journal.
         </p>

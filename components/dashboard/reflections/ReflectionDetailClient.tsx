@@ -268,8 +268,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
               <>
                 <span>·</span>
                 <span>
-                  Emotion:{" "}
-                  {decision.emotion.charAt(0).toUpperCase() + decision.emotion.slice(1)}
+                  Emotion: {decision.emotion.charAt(0).toUpperCase() + decision.emotion.slice(1)}
                 </span>
               </>
             )}
@@ -305,13 +304,14 @@ function ReflectionDetailClient({ id }: { id: string }) {
             Price Change
           </p>
           <p
-            className={cn(
-              "text-2xl font-bold",
-              isPositiveDiff ? "text-emerald-400" : isNegativeDiff ? "text-red-400" : "text-white",
-            )}
+            style={{
+              color: isPositiveDiff ? "#34d399" : isNegativeDiff ? "#f87171" : "#ffffff",
+            }}
+            className="text-2xl font-bold"
           >
             {formatPercent(decision.diff_percent)}
           </p>
+
           <p className="text-xs text-[#93abbe] mt-1">{formatUsd(decision.diff_amount)} total</p>
         </div>
       </div>
@@ -320,9 +320,7 @@ function ReflectionDetailClient({ id }: { id: string }) {
       <div className="bg-[#f3f5f7] rounded-2xl p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart2 className="w-4 h-4 text-[#0d1f35]" />
-          <h2 className="text-sm font-bold text-[#0d1f35]">
-            Price History · {decision.ticker}
-          </h2>
+          <h2 className="text-sm font-bold text-[#0d1f35]">Price History · {decision.ticker}</h2>
           <span className="text-xs text-[#9ca3af] ml-auto">
             60 days before · 90 days after decision
           </span>
@@ -429,21 +427,25 @@ function ReflectionDetailClient({ id }: { id: string }) {
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
                 Best Buy
               </p>
-              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_buy.price)}</p>
+              <p className="text-2xl font-bold text-[#0d1f35]">
+                {formatUsd(optimal.best_buy.price)}
+              </p>
               <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_buy.date)}</p>
             </div>
             <div className="bg-[#f3f5f7] rounded-xl p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#6b7280] mb-2">
                 Best Sell
               </p>
-              <p className="text-2xl font-bold text-[#0d1f35]">{formatUsd(optimal.best_sell.price)}</p>
+              <p className="text-2xl font-bold text-[#0d1f35]">
+                {formatUsd(optimal.best_sell.price)}
+              </p>
               <p className="text-xs text-[#9ca3af] mt-1">{formatDate(optimal.best_sell.date)}</p>
             </div>
             <div className="bg-[#0d1f35] rounded-xl p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-2">
                 Max Return
               </p>
-              <p className="text-2xl font-bold text-emerald-400">
+              <p className="text-2xl font-bold" style={{ color: "#34d399" }}>
                 {formatPercent(optimal.max_return_percent)}
               </p>
               <p className="text-xs text-[#93abbe] mt-1">Theoretical, hindsight only</p>
@@ -455,11 +457,13 @@ function ReflectionDetailClient({ id }: { id: string }) {
 
       {/* ── Reflection ── */}
       {decision.reflection && (
-        <div className="bg-[#0d1f35] rounded-2xl p-8">
+        <div className="bg-[#0d1f35] rounded-2xl p-4 overflow-visible h-auto">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#93abbe] mb-3">
             Reflection
           </p>
-          <p className="text-white text-sm leading-relaxed">{decision.reflection}</p>
+          <p className="text-white text-sm leading-relaxed whitespace-pre-wrap break-words w-full">
+            {decision.reflection}
+          </p>
         </div>
       )}
 
@@ -520,13 +524,12 @@ function ReflectionDetailClient({ id }: { id: string }) {
             <DialogHeader>
               <DialogTitle className="text-[#0d1f35]">Delete this reflection?</DialogTitle>
               <DialogDescription className="text-[#6b7280] pt-2">
-                {decision.title || `${decision.ticker} (${SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type})`}{" "}
+                {decision.title ||
+                  `${decision.ticker} (${SCENARIO_LABEL[decision.scenario_type] ?? decision.scenario_type})`}{" "}
                 logged on {formatDate(decision.decision_date)}. This cannot be undone.
               </DialogDescription>
             </DialogHeader>
-            {deleteError && (
-              <p className="text-xs text-red-600">{deleteError}</p>
-            )}
+            {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
             <DialogFooter className="flex gap-2 sm:gap-2 sm:justify-end mt-2">
               <Button
                 type="button"
